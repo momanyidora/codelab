@@ -55,7 +55,6 @@ padding: 3px 10px;
     font-size: 1.2rem;
     transition: color 0.3s ease;
 }
-
 .section-link:hover{
     color: blue;
     text-decoration: underline;
