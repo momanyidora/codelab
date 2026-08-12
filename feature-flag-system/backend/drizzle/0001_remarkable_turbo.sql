@@ -1,0 +1,1 @@
+ALTER TABLE "flags" ADD COLUMN "enabled" boolean DEFAULT false NOT NULL;
