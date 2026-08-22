@@ -4,12 +4,16 @@ import {
   isUserTargeted,
   removeTargetedUser,
 } from "../repositories/flag-targeting.repository.js";
+import { findFlagByKey } from "../repositories/flag.repository.js";
+import { recordFlagHistory } from "./flag-history.service.js";
+
 
 export async function addUserToTargeting(
   flagKey: string,
   environment: string,
   userId: string,
   actorId: string,
+  actor = "system"
 ) {
   if (!actorId) {
     throw new Error("ACTOR_ID_REQUIRED");
@@ -28,7 +32,18 @@ export async function addUserToTargeting(
   if (!result) {
     throw new Error("FLAG_NOT_FOUND");
   }
+  const flag = await findFlagByKey(flagKey);
 
+  if (flag) {
+    await recordFlagHistory(
+      flag.id,
+      actor,
+      "TARGETED_USER_ADDED",
+      null,
+      userId,
+      environment,
+    );
+  }
   return result;
 }
 
@@ -37,6 +52,7 @@ export async function removeUserFromTargeting(
   environment: string,
   userId: string,
   actorId: string,
+  actor = "system",
 ) {
   if (!actorId) {
     throw new Error("ACTOR_ID_REQUIRED");
@@ -59,7 +75,18 @@ export async function removeUserFromTargeting(
   if (result.type === "TARGETING_NOT_FOUND") {
     throw new Error("TARGETING_NOT_FOUND");
   }
+  const flag = await findFlagByKey(flagKey);
 
+  if (flag) {
+    await recordFlagHistory(
+      flag.id,
+      actor,
+      "TARGETED_USER_REMOVED",
+      userId,
+      null,
+      environment,
+    );
+  }
   return result.data;
 }
 export async function listTargetedUsers(flagKey: string, environment: string) {

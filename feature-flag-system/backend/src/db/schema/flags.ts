@@ -1,4 +1,12 @@
-import { pgTable, varchar, text, serial,boolean,  timestamp, integer } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  varchar,
+  text,
+  serial,
+  boolean,
+  timestamp,
+  integer,
+} from "drizzle-orm/pg-core";
 
 export const flags = pgTable("flags", {
   id: serial("id").primaryKey(),
@@ -11,10 +19,12 @@ export const flags = pgTable("flags", {
 
   description: text("description").notNull(),
 
-   enabled: boolean("enabled").default(false).notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
 
-   rolloutPercentage: integer("rollout_percentage").default(0).notNull(),
-   
+  killSwitch: boolean("kill_switch").default(false).notNull(),
+
+  rolloutPercentage: integer("rollout_percentage").default(0).notNull(),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })
@@ -26,6 +36,4 @@ export const flags = pgTable("flags", {
   })
     .defaultNow()
     .notNull(),
-
-    
 });

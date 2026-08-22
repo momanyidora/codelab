@@ -53,3 +53,16 @@ export async function setRolloutPercentage(key: string, percentage: number) {
 
   return flag ?? null;
 }
+
+export async function updateFlagKillSwitch(key: string, killSwitch: boolean) {
+  const [flag] = await db
+    .update(flags)
+    .set({
+      killSwitch,
+      updatedAt: new Date(),
+    })
+    .where(eq(flags.key, key))
+    .returning();
+
+  return flag ?? null;
+}

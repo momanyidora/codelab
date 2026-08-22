@@ -131,7 +131,12 @@ export async function setEnvironmentEnabledController(
       });
     }
 
-    const result = await setEnvironmentEnabled(key, environment, enabled);
+    const result = await setEnvironmentEnabled(
+      key,
+      environment,
+      enabled,
+      actorId,
+    );
 
     return res.status(200).json(result);
   } catch (error) {
@@ -185,9 +190,12 @@ export async function setEnvironmentRolloutController(
         },
       });
     }
-
-    const result = await setEnvironmentRollout(key, environment, percentage);
-
+    const result = await setEnvironmentRollout(
+      key,
+      environment,
+      percentage,
+      actorId,
+    );
     return res.status(200).json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

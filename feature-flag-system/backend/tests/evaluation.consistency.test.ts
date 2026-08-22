@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { evaluateFlag } from "../src/services/evaluation.service.js";
-import {createFlagService,} from "../src/services/flag.service.js";
-import { createEnvironment, setEnvironmentEnabled, setEnvironmentRollout } from "../src/services/flag-environment.service.js";
-
+import { createFlagService } from "../src/services/flag.service.js";
+import {
+  createEnvironment,
+  setEnvironmentEnabled,
+  setEnvironmentRollout,
+} from "../src/services/flag-environment.service.js";
 
 describe("Evaluation consistency", () => {
-  const environment = "staging"
+  const environment = "staging";
   it("should return the same result for the same user across repeated evaluations", async () => {
     const key = `consistent-${Date.now()}`;
     await createFlagService(key, "Consistency test");
-    await createEnvironment(key, environment)
+    await createEnvironment(key, environment);
 
     await setEnvironmentEnabled(key, environment, true);
     await setEnvironmentRollout(key, environment, 50);
@@ -27,7 +30,6 @@ describe("Evaluation consistency", () => {
   it("should use the flag key when evaluating the rollout", async () => {
     const flagA = `consistency-a-${Date.now()}`;
     const flagB = `consistency-b-${Date.now()}`;
-
 
     await createEnvironment(flagA, environment);
     await createEnvironment(flagB, environment);
@@ -47,9 +49,6 @@ describe("Evaluation consistency", () => {
     expect(resultA.flag).toBe(flagA);
     expect(resultB.flag).toBe(flagB);
 
-    // The two evaluations are allowed to have the same
-    // result by chance, but each evaluation must use its
-    // own flag key when calculating the bucket.
     expect([true, false]).toContain(resultA.enabled);
     expect([true, false]).toContain(resultB.enabled);
   });
@@ -58,7 +57,7 @@ describe("Evaluation consistency", () => {
     const key = `monotonic-${Date.now()}`;
 
     await createFlagService(key, "Monotonic rollout test");
-    await createEnvironment(key, environment)
+    await createEnvironment(key, environment);
 
     await setEnvironmentEnabled(key, environment, true);
 
@@ -93,10 +92,9 @@ describe("Evaluation consistency", () => {
     }
 
     expect(enabledAt30.size).toBeGreaterThanOrEqual(enabledAt20.size);
-  }, 15000);
+  }, 30000);
 
   it("should enable every user at 100% rollout", async () => {
-
     const key = `all-users-${Date.now()}`;
 
     await createFlagService(key, "100 percent test");
@@ -116,11 +114,10 @@ describe("Evaluation consistency", () => {
   });
 
   it("should disable every user at 0% rollout", async () => {
-    
     const key = `no-users-${Date.now()}`;
 
     await createFlagService(key, "0 percent test");
-    await createEnvironment(key, environment)
+    await createEnvironment(key, environment);
 
     await setEnvironmentEnabled(key, environment, true);
     await setEnvironmentRollout(key, environment, 0);

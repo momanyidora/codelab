@@ -5,6 +5,7 @@ import {
   getFlagByKeyService,
   setFlagEnabled,
   setFlagRolloutPercentageService,
+  setFlagKillSwitch,
 } from "../services/flag.service.js";
 
 export async function createFlagController(req: Request, res: Response) {
@@ -31,7 +32,7 @@ export async function createFlagController(req: Request, res: Response) {
       });
     }
 
-    const flag = await createFlagService(key, description);
+    const flag = await createFlagService(key, description, actorId);
 
     return res.status(201).json(flag);
   } catch (error) {
@@ -144,7 +145,7 @@ export async function setFlagEnabledController(req: Request, res: Response) {
       });
     }
 
-    const flag = await setFlagEnabled(key, enabled);
+    const flag = await setFlagEnabled(key, enabled, actorId);
 
     return res.status(200).json(flag);
   } catch (error) {
@@ -196,7 +197,11 @@ export async function setFlagRolloutPercentageController(
 
     const { percentage } = req.body;
 
-    const flag = await setFlagRolloutPercentageService(key, percentage);
+    const flag = await setFlagRolloutPercentageService(
+      key,
+      percentage,
+      actorId,
+    );
 
     return res.status(200).json(flag);
   } catch (error) {
@@ -226,6 +231,67 @@ export async function setFlagRolloutPercentageController(
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message,
+      },
+    });
+  }
+}
+
+export async function setFlagKillSwitchController(req: Request, res: Response) {
+  try {
+    const actorId = req.header("X-Actor-Id");
+
+    if (!actorId) {
+      return res.status(400).json({
+        error: {
+          code: "ACTOR_ID_REQUIRED",
+          message: "X-Actor-Id header is required",
+        },
+      });
+    }
+
+    const key = req.params.key;
+
+    if (typeof key !== "string") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Flag key must be a string",
+        },
+      });
+    }
+
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_KILL_SWITCH_VALUE",
+          message: "enabled must be a boolean",
+        },
+      });
+    }
+
+    const flag = await setFlagKillSwitch(key, enabled, actorId);
+
+    return res.status(200).json(flag);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message.includes("was not found")) {
+      return res.status(404).json({
+        error: {
+          code: "FLAG_NOT_FOUND",
+          message,
+        },
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong",
       },
     });
   }

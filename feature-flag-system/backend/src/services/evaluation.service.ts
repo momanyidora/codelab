@@ -3,11 +3,10 @@ import { getBucket } from "../utils/hash.js";
 import { checkUserTargeting } from "./flag-targeting.service.js";
 import { getEnvironment } from "./flag-environment.service.js";
 
-
 export async function evaluateFlag(
   flagKey: string,
   user: string,
-  environment: string 
+  environment: string,
 ) {
   const flag = await findFlagByKey(flagKey);
 
@@ -21,6 +20,15 @@ export async function evaluateFlag(
     };
   }
 
+  if (flag.killSwitch) {
+    return {
+      flag: flag.key,
+      user,
+      environment,
+      enabled: false,
+      reason: "KILL_SWITCH",
+    };
+  }
   const environmentConfig = await getEnvironment(flagKey, environment);
 
   const enabled = environmentConfig?.enabled ?? flag.enabled;
