@@ -1,0 +1,38 @@
+# REQ-006: Static routing rules
+default: service1
+
+rules:
+  - name: "Route ERROR logs to service1"
+    condition:
+      field: level
+      operator: equals
+      value: ERROR
+    destination: service1
+
+  - name: "Route WARN logs to service2"
+    condition:
+      field: level
+      operator: equals
+      value: WARN
+    destination: service2
+
+  - name: "Route DEBUG logs to service3"
+    condition:
+      field: level
+      operator: equals
+      value: DEBUG
+    destination: service3
+
+  - name: "Route payment service logs to service2"
+    condition:
+      field: service
+      operator: equals
+      value: payment
+    destination: service2
+
+  - name: "Route auth service logs to service3"
+    condition:
+      field: service
+      operator: starts_with
+      value: auth
+    destination: service3
