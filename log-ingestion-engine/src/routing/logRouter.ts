@@ -1,4 +1,3 @@
-// REQ-006: Static routing rules
 import type { RawLog, RoutingRule } from "../types/log.js";
 import fs from "fs";
 import yaml from "yaml";
@@ -23,7 +22,7 @@ export class LogRouter {
       console.log(`Loaded ${this.rules.length} routing rules`);
     } catch (error) {
       console.warn("Failed to load routing rules, using defaults:", error);
-      // Default rules
+
       this.rules = [
         {
           name: "ERROR to service1",

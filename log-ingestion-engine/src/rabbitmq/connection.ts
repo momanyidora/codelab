@@ -1,101 +1,70 @@
-import amqp, { Connection, Channel } from "amqplib";
-import { config } from "../config/env.js";
+import { rabbitmqHTTP } from "./httpClient.js";
+import { RabbitMQSetup } from "./exchanges.js";
 
 export class RabbitMQConnection {
-  private connection: Connection | null = null;
-  private channel: Channel | null = null;
   private isConnected = false;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
 
-  async connect(): Promise<{ connection: Connection; channel: Channel }> {
-    if (this.isConnected && this.connection && this.channel) {
-      return { connection: this.connection, channel: this.channel };
-    }
-
+  async connect(): Promise<{ connected: boolean; message: string }> {
     try {
-      const { host, port, user, pass } = config.rabbitmq;
-      const url = `amqp://${user}:${pass}@${host}:${port}`;
+      const healthy = await rabbitmqHTTP.health();
 
-      console.log(`🔌 Connecting to RabbitMQ at ${host}:${port}...`);
+      if (!healthy) {
+        return {
+          connected: false,
+          message: "RabbitMQ HTTP API not available",
+        };
+      }
 
-      this.connection = await amqp.connect(url);
-      this.channel = await this.connection.createChannel();
+      const setup = new RabbitMQSetup();
+
+      await setup.setupInfrastructure();
+
+      const verified = await setup.verifySetup();
+
+      if (!verified) {
+        return {
+          connected: false,
+          message: "RabbitMQ infrastructure not properly configured",
+        };
+      }
 
       this.isConnected = true;
-      this.reconnectAttempts = 0;
 
-      // Handle connection close
-      this.connection.on("close", () => {
-        console.warn("⚠️ RabbitMQ connection closed");
-        this.isConnected = false;
-        this.connection = null;
-        this.channel = null;
-        this.tryReconnect();
-      });
+      console.log("✅ RabbitMQ HTTP API connection established");
 
-      console.log("✅ RabbitMQ connected successfully");
-      return { connection: this.connection, channel: this.channel };
+      return {
+        connected: true,
+        message: "Connected to RabbitMQ via HTTP API",
+      };
     } catch (error) {
-      console.error("❌ Failed to connect to RabbitMQ:", error);
+      console.error("Failed to connect to RabbitMQ HTTP API:", error);
+
       this.isConnected = false;
-      this.connection = null;
-      this.channel = null;
-      throw error;
+
+      return {
+        connected: false,
+        message: "Failed to connect to RabbitMQ HTTP API",
+      };
     }
-  }
-
-  private async tryReconnect(): Promise<void> {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(" Max reconnect attempts reached for RabbitMQ");
-      return;
-    }
-
-    this.reconnectAttempts++;
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-
-    console.log(
-      ` Reconnecting to RabbitMQ in ${delay}ms (attempt ${this.reconnectAttempts})`,
-    );
-
-    setTimeout(async () => {
-      try {
-        await this.connect();
-      } catch (error) {
-        console.error("Reconnect failed:", error);
-        this.tryReconnect();
-      }
-    }, delay);
-  }
-
-  async getChannel(): Promise<Channel> {
-    if (!this.channel || !this.isConnected) {
-      await this.connect();
-    }
-    return this.channel!;
   }
 
   async close(): Promise<void> {
-    try {
-      if (this.channel) {
-        await this.channel.close();
-      }
-      if (this.connection) {
-        await this.connection.close();
-      }
-      this.isConnected = false;
-      this.connection = null;
-      this.channel = null;
-      console.log("🔌 RabbitMQ connection closed");
-    } catch (error) {
-      console.error("Error closing RabbitMQ connection:", error);
-    }
+    this.isConnected = false;
+    console.log("🔌 RabbitMQ HTTP API connection closed");
   }
 
   isConnectedToRabbitMQ(): boolean {
     return this.isConnected;
   }
+
+  async checkQueue(queue: string): Promise<boolean> {
+    try {
+      const queueInfo = await rabbitmqHTTP.getQueue(queue);
+      return !!queueInfo;
+    } catch {
+      return false;
+    }
+  }
 }
 
-// Singleton instance
 export const rabbitMQ = new RabbitMQConnection();

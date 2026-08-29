@@ -10,9 +10,9 @@ describe("HTTP Endpoints", () => {
   beforeAll(() => {
     app = express();
 
-    // Add middleware to check Content-Type BEFORE JSON parsing
+  
     app.use((req, res, next) => {
-      // Skip content-type check for health/other routes
+    
       if (req.path === "/logs") {
         const contentType = req.headers["content-type"];
         if (!contentType?.includes("application/json")) {
@@ -25,7 +25,7 @@ describe("HTTP Endpoints", () => {
       next();
     });
 
-    // Parse JSON after content-type check
+    
     app.use(express.json({ limit: "1mb" }));
 
     const logIngestor = new LogIngestor();
@@ -43,7 +43,7 @@ describe("HTTP Endpoints", () => {
       }
     });
 
-    // Start server on random port for testing
+    
     server = app.listen(0);
     const address = server.address();
     baseUrl = `http://localhost:${address.port}`;

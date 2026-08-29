@@ -1,4 +1,4 @@
-// REQ-004: In-memory channel queuing
+
 import type { RawLogMessage } from "../types/log.js";
 import { config } from "../config/env.js";
 
@@ -14,14 +14,14 @@ export class RawLogsChannel {
     this.batchSize = batchSize || config.consumerBatchSize;
   }
 
-  // Non-blocking push with timeout (REQ-004: 100ms timeout)
+  
   async push(message: RawLogMessage): Promise<boolean> {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         resolve(false); // Timeout - channel full
       }, 100);
 
-      // Try to push
+    
       if (this.channel.length < this.maxSize) {
         clearTimeout(timeout);
         this.channel.push(message);
@@ -29,7 +29,7 @@ export class RawLogsChannel {
         this.notifyConsumers();
       } else {
         clearTimeout(timeout);
-        resolve(false); // Channel full immediately
+        resolve(false);
       }
     });
   }
@@ -49,7 +49,7 @@ export class RawLogsChannel {
         const batch = this.channel.splice(0, this.batchSize);
         await this.processBatch(batch);
       } else {
-        // Wait for more logs or timeout
+        
         await this.waitForLogs();
       }
     }
@@ -62,7 +62,7 @@ export class RawLogsChannel {
           clearInterval(checkInterval);
           resolve();
         }
-      }, 10); // Check every 10ms
+      }, 10);
     });
   }
 
@@ -77,7 +77,7 @@ export class RawLogsChannel {
   }
 
   private notifyConsumers(): void {
-    // If channel has enough logs, start processing
+    
     if (this.channel.length >= this.batchSize && !this.isRunning) {
       this.startProcessing();
     }

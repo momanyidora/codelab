@@ -1,22 +1,72 @@
 import express from "express";
 import { config } from "./config/env.js";
 import { LogIngestor } from "./ingestion/logIngestor.js";
+import { metricsCollector } from "./monitoring/metrics.js";
+import { queueMetrics } from "./monitoring/queueMetrics.js";
+import { alertManager } from "./alerts/alertManager.js";
+import dashboardRouter from "./routes/dashboard.js";
 
 const app = express();
 const port = config.port;
-app.use(express.json({ limit: "1mb" }));
 
-const logIngestor = new LogIngestor();
-
-app.post("/logs", async (req, res) => {
-  try {
-    if (!req.headers["content-type"]?.includes("application/json")) {
+// Content-Type check middleware
+app.use((req, res, next) => {
+  if (req.path === "/logs") {
+    const contentType = req.headers["content-type"];
+    if (!contentType?.includes("application/json")) {
       return res.status(415).json({
         error: "Unsupported Media Type",
         message: "Content-Type must be application/json",
       });
     }
+  }
+  next();
+});
 
+// Parse JSON with 1MB limit
+app.use(express.json({ limit: "1mb" }));
+
+const logIngestor = new LogIngestor();
+
+// ============================================================
+// METRICS ROUTES (REQ-010) - MUST BE REGISTERED BEFORE ANY ERROR HANDLING
+// ============================================================
+
+// GET /metrics - Returns all metrics as JSON
+app.get("/metrics", (req, res) => {
+  try {
+    const metrics = logIngestor.getMetrics();
+    res.json({
+      ...metrics,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error getting metrics:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to retrieve metrics",
+    });
+  }
+});
+
+// GET /metrics/health - Simple health check
+app.get("/metrics/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    total_logs: metricsCollector.getTotalLogs(),
+    queue_backlog: metricsCollector.getQueueBacklog(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
+// Mount dashboard at /dashboard
+app.use("/dashboard", dashboardRouter);
+// Or if dashboardRouter has routes defined, use it directly:
+// app.use(dashboardRouter);
+
+app.post("/logs", async (req, res) => {
+  try {
     const contentLength = parseInt(req.headers["content-length"] || "0", 10);
     if (contentLength > 1024 * 1024) {
       return res.status(413).json({
@@ -25,8 +75,6 @@ app.post("/logs", async (req, res) => {
       });
     }
 
-    // Handle malformed JSON (REQ-001)
-    // Express will throw SyntaxError before route handler if JSON is malformed
     const body = req.body;
     if (!Array.isArray(body)) {
       return res.status(400).json({
@@ -96,13 +144,60 @@ app.post("/logs", async (req, res) => {
   }
 });
 
+// ============================================================
+// HEALTH CHECK
+// ============================================================
+
 app.get("/health", (req, res) => {
   res.json({ status: "healthy", env: config.env });
 });
 
-app.listen(port, () => {
-  console.log(` Log Ingestion Engine running on port ${port}`);
-  console.log(` Rate limit: ${config.rateLimit}/sec per IP`);
-  console.log(` Channel buffer: ${config.rawLogBuffer}`);
-  console.log(` Environment: ${config.env}`);
+// ============================================================
+// START SERVICES
+// ============================================================
+
+// Start queue metrics monitoring
+queueMetrics.startMonitoring();
+
+// Start alert manager (REQ-013)
+alertManager.start();
+
+// ============================================================
+// START SERVER
+// ============================================================
+
+const server = app.listen(port, () => {
+  console.log(`🚀 Log Ingestion Engine running on port ${port}`);
+  console.log(`📊 Rate limit: ${config.rateLimit}/sec per IP`);
+  console.log(`📦 Channel buffer: ${config.rawLogBuffer}`);
+  console.log(`🔄 Environment: ${config.env}`);
+  console.log(`📈 Metrics available at: http://localhost:${port}/metrics`);
+  console.log(`📊 Dashboard available at: http://localhost:${port}/dashboard`);
+  console.log(`🔔 Alert manager started`);
+});
+
+// ============================================================
+// GRACEFUL SHUTDOWN
+// ============================================================
+
+process.on("SIGINT", async () => {
+  console.log("\n🛑 Shutting down gracefully...");
+  alertManager.stop();
+  queueMetrics.stopMonitoring();
+  await logIngestor.shutdown();
+  server.close(() => {
+    console.log("✅ Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGTERM", async () => {
+  console.log("\n🛑 Shutting down gracefully...");
+  alertManager.stop();
+  queueMetrics.stopMonitoring();
+  await logIngestor.shutdown();
+  server.close(() => {
+    console.log("✅ Server closed");
+    process.exit(0);
+  });
 });

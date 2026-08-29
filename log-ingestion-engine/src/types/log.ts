@@ -42,3 +42,13 @@ export interface RoutingRule {
   };
   destination: "service1" | "service2" | "service3";
 }
+
+
+export interface RabbitMQMessage {
+  payload: string;
+  payload_encoding: string;
+  properties: {
+    delivery_mode: number;
+    content_type: string;
+  };
+}

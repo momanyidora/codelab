@@ -11,11 +11,10 @@
     "test:coverage": "vitest --coverage"
   },
   "keywords": [],
-  "author": "",
+  "author": "Dorah",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "amqplib": "^2.0.1",
     "better-sqlite3": "^13.0.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -24,7 +23,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/amqplib": "^0.10.8",
     "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",

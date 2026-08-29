@@ -1,0 +1,30 @@
+[
+  {
+    "log": {
+      "timestamp": "2026-08-24T10:20:00Z",
+      "service": "test",
+      "level": "INFO",
+      "message": "test message",
+      "received_at": "2026-08-24T10:20:01.123Z",
+      "source_ip": "192.168.1.1",
+      "env": "production"
+    },
+    "error": "Persistent error",
+    "timestamp": "2026-08-28T23:56:03.813Z",
+    "attempts": 3
+  },
+  {
+    "log": {
+      "timestamp": "2026-08-24T10:20:00Z",
+      "service": "test",
+      "level": "INFO",
+      "message": "test message",
+      "received_at": "2026-08-24T10:20:01.123Z",
+      "source_ip": "192.168.1.1",
+      "env": "production"
+    },
+    "error": "Error",
+    "timestamp": "2026-08-28T23:56:09.843Z",
+    "attempts": 3
+  }
+]
